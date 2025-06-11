@@ -9,9 +9,14 @@ from src.routes.components import components_bp
 from src.routes.visualization import visualization_bp
 from src.routes.ip_screener import ip_screener_bp
 from src.routes.relationships import relationships_bp
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'supply_chain_visualiser_2024'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)                            # <-- initialize db
 
 # Enable CORS for all routes
 CORS(app)
