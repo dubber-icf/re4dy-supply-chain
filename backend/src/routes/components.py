@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
-from flask_sqlalchemy import current_app as app
+from flask import current_app as app   
 from sqlalchemy import text
 import logging
+
 
 components_bp = Blueprint('components', __name__)
 
