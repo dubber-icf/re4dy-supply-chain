@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from src.models.database import db
 import logging
+from sqlalchemy import text
 
 components_bp = Blueprint('components', __name__)
 
@@ -60,9 +61,9 @@ def get_components():
         query += " ORDER BY c.part_name LIMIT %s OFFSET %s"
         params.extend([limit, offset])
 
-        with db.get_cursor() as (cursor, conn):
-            cursor.execute(query, params)
-            components = cursor.fetchall()
+        with db.get_connection() as conn:
+            result = conn.execute(text(query), params)
+            components = [dict(r._mapping) for r in result]
             
             # Get total count for pagination
             count_query = """
@@ -86,12 +87,12 @@ def get_components():
                 count_query += " AND s.name ILIKE %s"
                 count_params.append(f"%{supplier}%")
             
-            cursor.execute(count_query, count_params)
-            total_count = cursor.fetchone()['count']
+            count_result = conn.execute(text(count_query), count_params)
+            total_count = count_result.scalar()
 
         return jsonify({
             'success': True,
-            'components': [dict(component) for component in components],
+            'components': components,
             'pagination': {
                 'page': page,
                 'limit': limit,
@@ -122,14 +123,14 @@ def get_component_by_id(component_id):
             WHERE c.id = %s AND c.is_active = true
         """
 
-        with db.get_cursor() as (cursor, conn):
-            cursor.execute(query, (component_id,))
-            component = cursor.fetchone()
+        with db.get_connection() as conn:
+            result = conn.execute(text(query), (component_id,))
+            component = result.fetchone()
             
             if not component:
                 return jsonify({'error': 'Component not found'}), 404
 
-        return jsonify(dict(component))
+        return jsonify(dict(component._mapping))
 
     except Exception as e:
         logging.error(f"Error fetching component {component_id}: {e}")
@@ -156,11 +157,11 @@ def get_component_compatibility(component_id):
             ORDER BY man.name, vm.model_name
         """
 
-        with db.get_cursor() as (cursor, conn):
-            cursor.execute(query, (component_id,))
-            compatibility = cursor.fetchall()
+        with db.get_connection() as conn:
+            result = conn.execute(text(query), (component_id,))
+            compatibility = [dict(r._mapping) for r in result]
 
-        return jsonify([dict(comp) for comp in compatibility])
+        return jsonify(compatibility)
 
     except Exception as e:
         logging.error(f"Error fetching compatibility for component {component_id}: {e}")
@@ -179,11 +180,11 @@ def get_suppliers():
             ORDER BY s.name
         """
 
-        with db.get_cursor() as (cursor, conn):
-            cursor.execute(query)
-            suppliers = cursor.fetchall()
+        with db.get_connection() as conn:
+            result = conn.execute(text(query))
+            suppliers = [dict(r._mapping) for r in result]
 
-        return jsonify([dict(supplier) for supplier in suppliers])
+        return jsonify(suppliers)
 
     except Exception as e:
         logging.error(f"Error fetching suppliers: {e}")
@@ -202,11 +203,11 @@ def get_categories():
             ORDER BY cat.name
         """
 
-        with db.get_cursor() as (cursor, conn):
-            cursor.execute(query)
-            categories = cursor.fetchall()
+        with db.get_connection() as conn:
+            result = conn.execute(text(query))
+            categories = [dict(r._mapping) for r in result]
 
-        return jsonify([dict(category) for category in categories])
+        return jsonify(categories)
 
     except Exception as e:
         logging.error(f"Error fetching categories: {e}")
@@ -250,11 +251,11 @@ def search_components():
         search_param = f"%{query_param}%"
         params = [query_param, query_param, search_param, search_param, search_param]
 
-        with db.get_cursor() as (cursor, conn):
-            cursor.execute(query, params)
-            results = cursor.fetchall()
+        with db.get_connection() as conn:
+            result = conn.execute(text(query), params)
+            results = [dict(r._mapping) for r in result]
 
-        return jsonify({'components': [dict(result) for result in results]})
+        return jsonify({'components': results})
 
     except Exception as e:
         logging.error(f"Error searching components: {e}")

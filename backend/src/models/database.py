@@ -1,24 +1,19 @@
-import psycopg2
-import psycopg2.extras
+from flask import current_app
 from contextlib import contextmanager
 import os
 
 class DatabaseConnection:
     def __init__(self):
-        self.config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'database': os.getenv('DB_NAME', 'supply_chain_db'),
-            'user': os.getenv('DB_USER', 'ubuntu'),
-            'password': os.getenv('DB_PASSWORD', 'ubuntu'),
-            'port': int(os.getenv('DB_PORT', 5432))
-        }
+        # No longer needed - SQLAlchemy handles connection config
+        pass
     
     @contextmanager
     def get_connection(self):
-        """Context manager for database connections"""
+        """Context manager for database connections using SQLAlchemy"""
+        engine = current_app.extensions["sqlalchemy"].engine
         conn = None
         try:
-            conn = psycopg2.connect(**self.config)
+            conn = engine.connect()
             yield conn
         except Exception as e:
             if conn:
@@ -30,22 +25,15 @@ class DatabaseConnection:
     
     @contextmanager
     def get_cursor(self, dict_cursor=True):
-        """Context manager for database cursors"""
+        """Context manager for database cursors using SQLAlchemy"""
         with self.get_connection() as conn:
-            cursor = None
             try:
-                if dict_cursor:
-                    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                else:
-                    cursor = conn.cursor()
-                yield cursor, conn
+                # SQLAlchemy connection object for direct SQL execution
+                yield conn, conn
                 conn.commit()
             except Exception as e:
                 conn.rollback()
                 raise e
-            finally:
-                if cursor:
-                    cursor.close()
 
 # Global database instance
 db = DatabaseConnection()
