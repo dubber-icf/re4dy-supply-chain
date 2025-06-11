@@ -23,16 +23,11 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose the port your app listens on
-EXPOSE 8080
+EXPOSE 5000
 
 # Health check for Render
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:5000/health || exit 1
 
-# Use a small entrypoint script so seeding runs at startup, not build
-ENTRYPOINT ["/bin/sh", "-c", "\
-   echo 'Seeding database...' && \
-   python import_data.py && \
-   echo 'Starting Flask...' && \
-   flask run --host=0.0.0.0 --port=8080 \
-"]
+# Seed the DB at container start-up, then launch Gunicorn on port 5000
+ENTRYPOINT ["/bin/sh","-c","echo 'Seeding database…' && python backend/import_data.py && echo 'Starting Gunicorn…' && gunicorn --bind 0.0.0.0:5000 src.main:app"]
