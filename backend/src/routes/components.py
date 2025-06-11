@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from src.models.database import db
-import logging
+from flask_sqlalchemy import current_app as app
 from sqlalchemy import text
+import logging
 
 components_bp = Blueprint('components', __name__)
 
@@ -14,81 +14,81 @@ def get_components():
         category = request.args.get('category', '')
         supplier = request.args.get('supplier', '')
         page = int(request.args.get('page', 1))
-        # NOTE: Increased default limit to expose full dataset (200 components)
-        limit = int(request.args.get('limit', 200))  # Changed from 50 to 200
+        limit = int(request.args.get('limit', 200))
         offset = (page - 1) * limit
 
-        # Build query
-        query = """
-            SELECT 
-                c.id,
-                c.part_name,
-                c.part_number,
-                c.subcategory,
-                c.description,
-                c.specifications,
-                c.price_min,
-                c.price_max,
-                c.currency,
-                s.name as original_supplier,
-                s.country as supplier_country,
-                cat.name as category_name
-            FROM components c
-            JOIN suppliers s ON c.supplier_id = s.id
-            JOIN categories cat ON c.category_id = cat.id
-            WHERE c.is_active = true
-        """
-        
-        params = []
-        
-        # Add search filter
-        if search:
-            query += " AND (c.part_name ILIKE %s OR c.description ILIKE %s OR s.name ILIKE %s)"
-            search_param = f"%{search}%"
-            params.extend([search_param, search_param, search_param])
-        
-        # Add category filter
-        if category:
-            query += " AND cat.name ILIKE %s"
-            params.append(f"%{category}%")
-        
-        # Add supplier filter
-        if supplier:
-            query += " AND s.name ILIKE %s"
-            params.append(f"%{supplier}%")
-        
-        # Add ordering and pagination
-        query += " ORDER BY c.part_name LIMIT %s OFFSET %s"
-        params.extend([limit, offset])
+        with app.app_context():
+            engine = app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                # Build query
+                query = """
+                    SELECT 
+                        c.id,
+                        c.part_name,
+                        c.part_number,
+                        c.subcategory,
+                        c.description,
+                        c.specifications,
+                        c.price_min,
+                        c.price_max,
+                        c.currency,
+                        s.name as original_supplier,
+                        s.country as supplier_country,
+                        cat.name as category_name
+                    FROM components c
+                    JOIN suppliers s ON c.supplier_id = s.id
+                    JOIN categories cat ON c.category_id = cat.id
+                    WHERE c.is_active = true
+                """
+                
+                params = {}
+                
+                # Add search filter
+                if search:
+                    query += " AND (c.part_name ILIKE :search OR c.description ILIKE :search OR s.name ILIKE :search)"
+                    params['search'] = f"%{search}%"
+                
+                # Add category filter
+                if category:
+                    query += " AND cat.name ILIKE :category"
+                    params['category'] = f"%{category}%"
+                
+                # Add supplier filter
+                if supplier:
+                    query += " AND s.name ILIKE :supplier"
+                    params['supplier'] = f"%{supplier}%"
+                
+                # Add ordering and pagination
+                query += " ORDER BY c.part_name LIMIT :limit OFFSET :offset"
+                params.update({'limit': limit, 'offset': offset})
 
-        with db.get_connection() as conn:
-            result = conn.execute(text(query), params)
-            components = [dict(r._mapping) for r in result]
-            
-            # Get total count for pagination
-            count_query = """
-                SELECT COUNT(*)
-                FROM components c
-                JOIN suppliers s ON c.supplier_id = s.id
-                JOIN categories cat ON c.category_id = cat.id
-                WHERE c.is_active = true
-            """
-            count_params = []
-            
-            if search:
-                count_query += " AND (c.part_name ILIKE %s OR c.description ILIKE %s OR s.name ILIKE %s)"
-                count_params.extend([search_param, search_param, search_param])
-            
-            if category:
-                count_query += " AND cat.name ILIKE %s"
-                count_params.append(f"%{category}%")
-            
-            if supplier:
-                count_query += " AND s.name ILIKE %s"
-                count_params.append(f"%{supplier}%")
-            
-            count_result = conn.execute(text(count_query), count_params)
-            total_count = count_result.scalar()
+                result = conn.execute(text(query), params)
+                components = [dict(r._mapping) for r in result]
+                
+                # Get total count for pagination
+                count_query = """
+                    SELECT COUNT(*)
+                    FROM components c
+                    JOIN suppliers s ON c.supplier_id = s.id
+                    JOIN categories cat ON c.category_id = cat.id
+                    WHERE c.is_active = true
+                """
+                count_params = {}
+                
+                if search:
+                    count_query += " AND (c.part_name ILIKE :search OR c.description ILIKE :search OR s.name ILIKE :search)"
+                    count_params['search'] = f"%{search}%"
+                
+                if category:
+                    count_query += " AND cat.name ILIKE :category"
+                    count_params['category'] = f"%{category}%"
+                
+                if supplier:
+                    count_query += " AND s.name ILIKE :supplier"
+                    count_params['supplier'] = f"%{supplier}%"
+                
+                count_result = conn.execute(text(count_query), count_params)
+                total_count = count_result.scalar()
 
         return jsonify({
             'success': True,
@@ -99,7 +99,7 @@ def get_components():
                 'total': total_count,
                 'pages': (total_count + limit - 1) // limit
             }
-        })
+        }), 200
 
     except Exception as e:
         logging.error(f"Error fetching components: {e}")
@@ -109,28 +109,30 @@ def get_components():
 def get_component_by_id(component_id):
     """Get detailed component information by ID"""
     try:
-        query = """
-            SELECT 
-                c.*,
-                s.name as supplier_name,
-                s.country as supplier_country,
-                s.website as supplier_website,
-                cat.name as category_name,
-                cat.description as category_description
-            FROM components c
-            JOIN suppliers s ON c.supplier_id = s.id
-            JOIN categories cat ON c.category_id = cat.id
-            WHERE c.id = %s AND c.is_active = true
-        """
+        with app.app_context():
+            engine = app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                query = """
+                    SELECT 
+                        c.*,
+                        s.name as supplier_name,
+                        s.country as supplier_country,
+                        s.website as supplier_website,
+                        cat.name as category_name,
+                        cat.description as category_description
+                    FROM components c
+                    JOIN suppliers s ON c.supplier_id = s.id
+                    JOIN categories cat ON c.category_id = cat.id
+                    WHERE c.id = :component_id AND c.is_active = true
+                """
 
-        with db.get_connection() as conn:
-            result = conn.execute(text(query), (component_id,))
-            component = result.fetchone()
-            
-            if not component:
-                return jsonify({'error': 'Component not found'}), 404
+                result = conn.execute(text(query), {'component_id': component_id})
+                component = result.fetchone()
+                
+                if not component:
+                    return jsonify({'error': 'Component not found'}), 404
 
-        return jsonify(dict(component._mapping))
+        return jsonify(dict(component._mapping)), 200
 
     except Exception as e:
         logging.error(f"Error fetching component {component_id}: {e}")
@@ -140,28 +142,30 @@ def get_component_by_id(component_id):
 def get_component_compatibility(component_id):
     """Get vehicle compatibility for a component"""
     try:
-        query = """
-            SELECT 
-                vm.id,
-                vm.model_name,
-                vm.model_year_start,
-                vm.model_year_end,
-                vm.vehicle_type,
-                vm.generation,
-                man.name as manufacturer_name,
-                man.country as manufacturer_country
-            FROM component_compatibility cc
-            JOIN vehicle_models vm ON cc.vehicle_model_id = vm.id
-            JOIN vehicle_manufacturers man ON vm.manufacturer_id = man.id
-            WHERE cc.component_id = %s
-            ORDER BY man.name, vm.model_name
-        """
+        with app.app_context():
+            engine = app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                query = """
+                    SELECT 
+                        vm.id,
+                        vm.model_name,
+                        vm.model_year_start,
+                        vm.model_year_end,
+                        vm.vehicle_type,
+                        vm.generation,
+                        man.name as manufacturer_name,
+                        man.country as manufacturer_country
+                    FROM component_compatibility cc
+                    JOIN vehicle_models vm ON cc.vehicle_model_id = vm.id
+                    JOIN vehicle_manufacturers man ON vm.manufacturer_id = man.id
+                    WHERE cc.component_id = :component_id
+                    ORDER BY man.name, vm.model_name
+                """
 
-        with db.get_connection() as conn:
-            result = conn.execute(text(query), (component_id,))
-            compatibility = [dict(r._mapping) for r in result]
+                result = conn.execute(text(query), {'component_id': component_id})
+                compatibility = [dict(r._mapping) for r in result]
 
-        return jsonify(compatibility)
+        return jsonify(compatibility), 200
 
     except Exception as e:
         logging.error(f"Error fetching compatibility for component {component_id}: {e}")
@@ -171,20 +175,22 @@ def get_component_compatibility(component_id):
 def get_suppliers():
     """Get all suppliers"""
     try:
-        query = """
-            SELECT id, name, country, website, 
-                   COUNT(c.id) as component_count
-            FROM suppliers s
-            LEFT JOIN components c ON s.id = c.supplier_id AND c.is_active = true
-            GROUP BY s.id, s.name, s.country, s.website
-            ORDER BY s.name
-        """
+        with app.app_context():
+            engine = app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                query = """
+                    SELECT id, name, country, website, 
+                           COUNT(c.id) as component_count
+                    FROM suppliers s
+                    LEFT JOIN components c ON s.id = c.supplier_id AND c.is_active = true
+                    GROUP BY s.id, s.name, s.country, s.website
+                    ORDER BY s.name
+                """
 
-        with db.get_connection() as conn:
-            result = conn.execute(text(query))
-            suppliers = [dict(r._mapping) for r in result]
+                result = conn.execute(text(query))
+                suppliers = [dict(r._mapping) for r in result]
 
-        return jsonify(suppliers)
+        return jsonify(suppliers), 200
 
     except Exception as e:
         logging.error(f"Error fetching suppliers: {e}")
@@ -194,20 +200,22 @@ def get_suppliers():
 def get_categories():
     """Get all categories"""
     try:
-        query = """
-            SELECT id, name, description,
-                   COUNT(c.id) as component_count
-            FROM categories cat
-            LEFT JOIN components c ON cat.id = c.category_id AND c.is_active = true
-            GROUP BY cat.id, cat.name, cat.description
-            ORDER BY cat.name
-        """
+        with app.app_context():
+            engine = app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                query = """
+                    SELECT id, name, description,
+                           COUNT(c.id) as component_count
+                    FROM categories cat
+                    LEFT JOIN components c ON cat.id = c.category_id AND c.is_active = true
+                    GROUP BY cat.id, cat.name, cat.description
+                    ORDER BY cat.name
+                """
 
-        with db.get_connection() as conn:
-            result = conn.execute(text(query))
-            categories = [dict(r._mapping) for r in result]
+                result = conn.execute(text(query))
+                categories = [dict(r._mapping) for r in result]
 
-        return jsonify(categories)
+        return jsonify(categories), 200
 
     except Exception as e:
         logging.error(f"Error fetching categories: {e}")
@@ -219,45 +227,38 @@ def search_components():
     try:
         query_param = request.args.get('q', '')
         if not query_param:
-            return jsonify({'components': []})
+            return jsonify({'components': []}), 200
 
-        query = """
-            SELECT 
-                c.id,
-                c.part_name,
-                c.part_number,
-                c.description,
-                s.name as supplier_name,
-                cat.name as category_name,
-                ts_rank(
-                    to_tsvector('english', c.part_name || ' ' || c.description || ' ' || s.name),
-                    plainto_tsquery('english', %s)
-                ) as rank
-            FROM components c
-            JOIN suppliers s ON c.supplier_id = s.id
-            JOIN categories cat ON c.category_id = cat.id
-            WHERE c.is_active = true
-            AND (
-                to_tsvector('english', c.part_name || ' ' || c.description || ' ' || s.name) 
-                @@ plainto_tsquery('english', %s)
-                OR c.part_name ILIKE %s
-                OR c.description ILIKE %s
-                OR s.name ILIKE %s
-            )
-            ORDER BY rank DESC, c.part_name
-            LIMIT 20
-        """
+        with app.app_context():
+            engine = app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                query = """
+                    SELECT 
+                        c.id,
+                        c.part_name,
+                        c.part_number,
+                        c.description,
+                        s.name as supplier_name,
+                        cat.name as category_name
+                    FROM components c
+                    JOIN suppliers s ON c.supplier_id = s.id
+                    JOIN categories cat ON c.category_id = cat.id
+                    WHERE c.is_active = true
+                    AND (
+                        c.part_name ILIKE :search
+                        OR c.description ILIKE :search
+                        OR s.name ILIKE :search
+                    )
+                    ORDER BY c.part_name
+                    LIMIT 20
+                """
 
-        search_param = f"%{query_param}%"
-        params = [query_param, query_param, search_param, search_param, search_param]
+                search_param = f"%{query_param}%"
+                result = conn.execute(text(query), {'search': search_param})
+                results = [dict(r._mapping) for r in result]
 
-        with db.get_connection() as conn:
-            result = conn.execute(text(query), params)
-            results = [dict(r._mapping) for r in result]
-
-        return jsonify({'components': results})
+        return jsonify({'components': results}), 200
 
     except Exception as e:
         logging.error(f"Error searching components: {e}")
         return jsonify({'error': 'Search failed'}), 500
-
