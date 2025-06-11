@@ -1,0 +1,12 @@
+INFO:src.services.ip_screener_live:IP Screener service initialized successfully
+ * Serving Flask app 'main'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://169.254.0.21:5000
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+INFO:src.services.ip_screener_live:IP Screener service initialized successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 106-983-103
