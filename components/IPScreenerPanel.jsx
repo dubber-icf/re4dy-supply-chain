@@ -9,7 +9,8 @@ const IPScreenerPanel = ({
   isExpanded, 
   onAnalyze,
   onClose,
-  apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  apiUrl = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || ''
+
 }) => {
   const [analysisState, setAnalysisState] = useState('idle'); // idle, loading, success, error
   const [analysisData, setAnalysisData] = useState(null);

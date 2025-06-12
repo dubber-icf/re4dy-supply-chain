@@ -18,7 +18,9 @@ const SankeyVisualization = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('http://localhost:5000/api/relationships/sankey');
+      const apiBase = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiBase}/relationships/sankey`); 
+      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

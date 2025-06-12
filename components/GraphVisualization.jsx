@@ -21,9 +21,10 @@ const GraphVisualization = () => {
       setError(null);
       
       // Load nodes and relationships
-      const [nodesResponse, relationshipsResponse] = await Promise.all([
-        fetch('http://localhost:5000/api/relationships/nodes'),
-        fetch('http://localhost:5000/api/relationships')
+    const apiBase = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || '';
+    const [nodesResponse, relationshipsResponse] = await Promise.all([
+      fetch(`${apiBase}/relationships/nodes`),
+      fetch(`${apiBase}/relationships`)
       ]);
 
       if (!nodesResponse.ok || !relationshipsResponse.ok) {

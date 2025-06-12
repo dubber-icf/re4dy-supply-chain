@@ -8,6 +8,14 @@ import HealthCheck from './components/HealthCheck';
 import ComponentService from './services/ComponentService';
 import './App.css';
 
+// Add near the top of your App component function
+React.useEffect(() => {
+  console.log('App environment variables:');
+  console.log('VITE_RE4DY_API_BASE:', import.meta.env.VITE_RE4DY_API_BASE);
+  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+}, []);
+
+
 // Global state context
 const AppStateContext = createContext();
 

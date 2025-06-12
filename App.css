@@ -131,6 +131,21 @@
   flex-direction: column;
 }
 
+/* Add to App.css */
+.app-header .logo-link {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin-right: 12px;
+}
+
+.app-header .icf-logo {
+  height: 32px;
+  width: auto;
+  margin-right: 16px;
+}
+
+
 /* NOTE: Map alternatives badge - faint indicator in corner */
 .alternatives-badge {
   position: absolute;

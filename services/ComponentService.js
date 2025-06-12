@@ -1,78 +1,75 @@
-// NOTE: ComponentService handles all API calls to Flask backend for component data
-import axios from 'axios';
+// Ultra-simplified ComponentService.js - NO LOCALHOST REFERENCES
+console.log('[ComponentService] Initializing with no localhost fallbacks');
 
-// CRITICAL FIX: Remove localhost fallback completely
 const API_BASE_URL = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || '';
-
-// NOTE: Log the exact URL being used for debugging
-console.log('[ComponentService] API Base URL:', API_BASE_URL );
+console.log('[ComponentService] API Base URL:', API_BASE_URL);
 
 class ComponentService {
   constructor() {
     this.cache = new Map();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
   }
 
-  // NOTE: Get the current API base URL for debugging
   getApiBaseUrl() {
     return API_BASE_URL;
   }
 
-  // NOTE: Fetch all components from PostgreSQL database
   async getAllComponents() {
-    const cacheKey = 'all_components';
-    const cached = this.cache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-
     try {
-      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
       if (!API_BASE_URL) {
-        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
+        throw new Error('API Base URL is not configured');
       }
       
-      const fullUrl = `${API_BASE_URL}/components`;
-      console.log('[ComponentService] Fetching components from:', fullUrl);
+      const url = `${API_BASE_URL}/components`;
+      console.log('[ComponentService] Fetching from:', url);
       
-      const response = await axios.get(fullUrl, {
-        timeout: 30000, // 30 second timeout
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
       
-      const data = response.data;
+      const data = await response.json();
       console.log('[ComponentService] Successfully loaded', data.length, 'components');
-      
-      this.cache.set(cacheKey, {
-        data: data,
-        timestamp: Date.now()
-      });
-      
       return data;
     } catch (error) {
-      console.error('[ComponentService] Failed to fetch components:', error);
-      console.error('[ComponentService] Request URL was:', `${API_BASE_URL}/components`);
-      
-      // NOTE: Provide detailed error information for debugging
-      if (error.response) {
-        console.error('[ComponentService] Response status:', error.response.status);
-        console.error('[ComponentService] Response data:', error.response.data);
-      } else if (error.request) {
-        console.error('[ComponentService] No response received');
-      } else {
-        console.error('[ComponentService] Request setup error:', error.message);
-      }
-      
-      // CRITICAL FIX: Remove any potential localhost fallback here
-      throw new Error(`Unable to load component data from ${API_BASE_URL}/components. Please check your connection and backend configuration.`);
+      console.error('[ComponentService] Error:', error);
+      throw error;
     }
   }
 
-  // All other methods remain the same, just ensure no localhost fallbacks anywhere
+  async searchComponents(searchTerm = '', category = '', supplier = '') {
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (category) params.append('category', category);
+      if (supplier) params.append('supplier', supplier);
+      
+      const url = `${API_BASE_URL}/components/search?${params}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[ComponentService] Search error:', error);
+      throw error;
+    }
+  }
+
+  async getComponentById(id) {
+    try {
+      const url = `${API_BASE_URL}/components/${id}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`[ComponentService] Error fetching component ${id}:`, error);
+      throw error;
+    }
+  }
 }
 
 export default new ComponentService();
