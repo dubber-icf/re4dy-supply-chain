@@ -1,18 +1,16 @@
 // tailwind.config.js
 module.exports = {
   content: [
-    "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}"
+    "./index.html",                 // root HTML
+    "./*.{js,jsx,ts,tsx}",          // App.jsx, main.jsx, etc. in root
+    "./components/**/*.{js,jsx,ts,tsx}"  // everything in /components
   ],
   theme: {
     extend: {
       colors: {
-        // define a 'border' color so 'border-border' works
-        border: '#e5e7eb'  // or whatever light grey you prefer
+        border: "#e5e7eb"
       }
     }
   },
-  plugins: [],
-}
-
+  plugins: []
+};
