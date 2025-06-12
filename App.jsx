@@ -28,6 +28,7 @@ const AppStateProvider = ({ children }) => {
   const [mapMarkers, setMapMarkers] = useState([]);
   const [loadingError, setLoadingError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [ipScreenerResults, setIpScreenerResults] = useState(null);
 
   // NOTE: Load all components on app initialization
   useEffect(() => {
@@ -86,7 +87,9 @@ const AppStateProvider = ({ children }) => {
     setMapMarkers,
     loadAllComponents,
     loadingError,
-    isLoading
+    isLoading,
+    ipScreenerResults,
+    setIpScreenerResults
   };
 
   return (
@@ -224,7 +227,7 @@ function App() {
 
               <div className="flex items-center space-x-2">
                 {/* NOTE: Hide Health Check link for normal users, show only in debug mode */}
-                {new URLSearchParams(window.location.search).get('debug') === '1' && (
+                {new URLSearchParams(window.location.search ).get('debug') === '1' && (
                   <a 
                     href="/health"
                     className="text-sm text-blue-600 hover:text-blue-800 underline"
@@ -258,7 +261,7 @@ function App() {
 
 // NOTE: Separate component for main content to access AppState context
 const AppContent = ({ activeView, setActiveView, isExpanded, renderVisualization }) => {
-  const { loadingError, isLoading, loadAllComponents } = useAppState();
+  const { loadingError, isLoading, loadAllComponents, ipScreenerResults } = useAppState();
 
   // NOTE: Show API error fallback if there's a loading error
   if (loadingError && !isLoading) {
@@ -266,13 +269,14 @@ const AppContent = ({ activeView, setActiveView, isExpanded, renderVisualization
   }
 
   return (
-    <div className="flex h-[calc(100vh-120px)]">
-      {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col ${isExpanded ? 'w-full' : ''}`}>
-        {/* Navigation Tabs */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Visualization Type Buttons */}
+    <div className="h-[calc(100vh-120px)]">
+      {/* NOTE: Two-column layout: ⅔ data visualization / ⅓ IP Screener */}
+      <div className={`grid h-full ${isExpanded ? 'grid-cols-1' : 'grid-cols-[2fr_1fr]'} max-w-[1600px] mx-auto`}>
+        
+        {/* Main Content Area - Data Visualization */}
+        <div className="flex flex-col bg-white border-r border-gray-200">
+          {/* Navigation Tabs */}
+          <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex space-x-2">
               <button
                 onClick={() => setActiveView('table')}
@@ -316,23 +320,39 @@ const AppContent = ({ activeView, setActiveView, isExpanded, renderVisualization
               </button>
             </div>
           </div>
+
+          {/* Visualization Content */}
+          <div className="flex-1 p-6 overflow-hidden">
+            {renderVisualization()}
+          </div>
         </div>
 
-        {/* Visualization Content */}
-        <div className="flex-1 p-6 overflow-hidden">
-          {renderVisualization()}
-        </div>
+        {/* IP Screener Panel - ⅓ width */}
+        {!isExpanded && (
+          <div className="bg-white flex flex-col">
+            <IPScreenerPanel />
+            
+            {/* NOTE: Map shows inside IP Screener panel when search has results */}
+            {ipScreenerResults && ipScreenerResults.length > 0 && (
+              <div className="border-t border-gray-200 p-4">
+                <div className="relative">
+                  <div className="absolute top-2 right-2 z-10 bg-white/80 px-2 py-1 rounded text-xs text-gray-600">
+                    Alternatives
+                  </div>
+                  <div className="h-64">
+                    <MapVisualization 
+                      data={ipScreenerResults} 
+                      showAlternatives={true}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* IP Screener Panel */}
-      {!isExpanded && (
-        <div className="w-80 bg-white border-l border-gray-200">
-          <IPScreenerPanel />
-        </div>
-      )}
     </div>
   );
 };
 
 export default App;
-

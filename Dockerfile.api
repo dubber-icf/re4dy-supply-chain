@@ -30,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1
 
 # Seed the DB at container start-up, then launch Gunicorn on port 5000
-EENTRYPOINT ["/bin/sh","-c","echo 'Seeding database…' && python import_data.py && echo 'Starting Gunicorn…' && gunicorn --bind 0.0.0.0:5000 src.main:app"]
+ENTRYPOINT ["/bin/sh","-c","echo 'Seeding database…' && python backend/import_data.py && echo 'Starting Gunicorn…' && gunicorn --bind 0.0.0.0:5000 src.main:app"]

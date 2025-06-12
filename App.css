@@ -111,4 +111,319 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ===== C.R.A.F.T. DESIGN ADDITIONS ===== */
 
+/* NOTE: Two-column layout with proper ⅔ data / ⅓ IP Screener proportions */
+.grid-cols-\[2fr_1fr\] {
+  grid-template-columns: 2fr 1fr;
+}
+
+/* NOTE: Ensure proper max-width and centering for professional layout */
+.max-w-\[1600px\] {
+  max-width: 1600px;
+}
+
+/* NOTE: IP Screener panel styling with proper borders */
+.ip-screener-panel {
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+/* NOTE: Map alternatives badge - faint indicator in corner */
+.alternatives-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+/* NOTE: Development banner styling for API base URL visibility */
+.dev-banner {
+  background: #dc2626;
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dev-banner button {
+  margin-left: 8px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dev-banner button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* NOTE: Error fallback component styling */
+.api-error-fallback {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.api-error-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.api-error-content h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.api-error-content p {
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.api-error-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.api-error-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.api-error-button.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.api-error-button.secondary:hover {
+  background: #e5e7eb;
+}
+
+.api-error-button.primary {
+  background: #2563eb;
+  color: white;
+}
+
+.api-error-button.primary:hover {
+  background: #1d4ed8;
+}
+
+/* NOTE: Header styling with proper ICF logo placement */
+.app-header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 24px;
+}
+
+.app-header .header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-header .logo-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-header .logo-link {
+  display: flex;
+  align-items: center;
+}
+
+.app-header .icf-logo {
+  height: 32px;
+  width: auto;
+}
+
+.app-header .title-section h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.app-header .title-section p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.app-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header .health-check-link {
+  font-size: 14px;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.app-header .health-check-link:hover {
+  color: #1d4ed8;
+}
+
+.app-header .expand-button {
+  padding: 8px;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.app-header .expand-button:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+/* NOTE: Navigation tabs styling */
+.nav-tabs {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 24px;
+}
+
+.nav-tabs .tab-list {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.nav-tab.active {
+  color: white;
+}
+
+.nav-tab.inactive {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.nav-tab.inactive:hover {
+  background: #e5e7eb;
+}
+
+.nav-tab.table.active {
+  background: #2563eb;
+}
+
+.nav-tab.sankey.active {
+  background: #ea580c;
+}
+
+.nav-tab.graph.active {
+  background: #9333ea;
+}
+
+.nav-tab.map.active {
+  background: #059669;
+}
+
+/* NOTE: Responsive design for mobile devices */
+@media (max-width: 768px) {
+  .grid-cols-\[2fr_1fr\] {
+    grid-template-columns: 1fr;
+  }
+  
+  .ip-screener-panel {
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .app-header .header-content {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .app-header .logo-section {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .nav-tabs .tab-list {
+    flex-wrap: wrap;
+  }
+  
+  .alternatives-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
+
+/* NOTE: Print styles for professional output */
+@media print {
+  .dev-banner,
+  .app-header .header-actions,
+  .nav-tabs {
+    display: none;
+  }
+  
+  .grid-cols-\[2fr_1fr\] {
+    grid-template-columns: 1fr;
+  }
+  
+  .ip-screener-panel {
+    border: none;
+    page-break-before: always;
+  }
+}
+
+/* NOTE: High contrast mode support */
+@media (prefers-contrast: high) {
+  .alternatives-badge {
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+  }
+  
+  .nav-tab.inactive {
+    border: 2px solid #374151;
+  }
+}
+
+/* NOTE: Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .nav-tab,
+  .api-error-button,
+  .app-header .expand-button,
+  .dev-banner button {
+    transition: none;
+  }
+}

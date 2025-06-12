@@ -1,8 +1,16 @@
-// NOTE: ComponentService handles all API calls to Flask backend for component data
+// NOTE: ComponentService handles all API calls to Flask backend - PRODUCTION READY
 import axios from 'axios';
 
-// NOTE: Fix environment variable name to match deployment configuration
-const API_BASE_URL = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// NOTE: Use build-time injected API base or environment variable
+const API_BASE_URL = typeof __API_BASE__ !== 'undefined' 
+  ? __API_BASE__ 
+  : import.meta.env.VITE_RE4DY_API_BASE 
+  || 'https://re4dy-supply-chain.onrender.com/api';
+
+// NOTE: Fail build if localhost detected in production
+if (import.meta.env.PROD && API_BASE_URL.includes('localhost' )) {
+  throw new Error('PRODUCTION BUILD ERROR: localhost API detected. Set VITE_RE4DY_API_BASE environment variable.');
+}
 
 // NOTE: Log the exact URL being used for debugging
 console.log('[ComponentService] API Base URL:', API_BASE_URL);
@@ -39,7 +47,8 @@ class ComponentService {
         }
       });
       
-      const data = response.data;
+      // NOTE: Handle both array response and object with components array
+      const data = response.data.components || response.data;
       console.log('[ComponentService] Successfully loaded', data.length, 'components');
       
       this.cache.set(cacheKey, {
@@ -57,12 +66,12 @@ class ComponentService {
         console.error('[ComponentService] Response status:', error.response.status);
         console.error('[ComponentService] Response data:', error.response.data);
       } else if (error.request) {
-        console.error('[ComponentService] No response received');
+        console.error('[ComponentService] No response received - check CORS and network');
       } else {
         console.error('[ComponentService] Request setup error:', error.message);
       }
       
-      throw new Error(`Unable to load component data from ${API_BASE_URL}/components. Please check your connection and backend configuration.`);
+      throw new Error(`Backend offline. Check RE4DY_API_BASE: ${API_BASE_URL}/components`);
     }
   }
 
@@ -85,7 +94,7 @@ class ComponentService {
         }
       });
       
-      return response.data;
+      return response.data.components || response.data;
     } catch (error) {
       console.error('[ComponentService] Failed to search components:', error);
       throw new Error('Search failed. Please try again.');
@@ -198,4 +207,3 @@ class ComponentService {
 }
 
 export default new ComponentService();
-
