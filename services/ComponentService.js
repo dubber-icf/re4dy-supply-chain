@@ -2,10 +2,11 @@
 import axios from 'axios';
 
 // CRITICAL FIX: Remove localhost fallback to prevent CORS errors in production
+// Original: const API_BASE_URL = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_BASE_URL = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || '';
 
 // NOTE: Log the exact URL being used for debugging
-console.log('[ComponentService] API Base URL:', API_BASE_URL);
+console.log('[ComponentService] API Base URL:', API_BASE_URL );
 
 class ComponentService {
   constructor() {
@@ -28,11 +29,6 @@ class ComponentService {
     }
 
     try {
-      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
-      if (!API_BASE_URL) {
-        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
-      }
-      
       const fullUrl = `${API_BASE_URL}/components`;
       console.log('[ComponentService] Fetching components from:', fullUrl);
       
@@ -54,18 +50,7 @@ class ComponentService {
       
       return data;
     } catch (error) {
-      console.error('[ComponentService] Failed to fetch components:', error);
-      
-      // NOTE: Provide detailed error information for debugging
-      if (error.response) {
-        console.error('[ComponentService] Response status:', error.response.status);
-        console.error('[ComponentService] Response data:', error.response.data);
-      } else if (error.request) {
-        console.error('[ComponentService] No response received');
-      } else {
-        console.error('[ComponentService] Request setup error:', error.message);
-      }
-      
+      console.error('Error loading components:', error);
       throw error;
     }
   }
@@ -73,11 +58,6 @@ class ComponentService {
   // NOTE: Search components by name, category, or supplier
   async searchComponents(searchTerm = '', category = '', supplier = '') {
     try {
-      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
-      if (!API_BASE_URL) {
-        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
-      }
-      
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (category) params.append('category', category);
@@ -107,11 +87,6 @@ class ComponentService {
   // NOTE: Get component by ID
   async getComponentById(id) {
     try {
-      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
-      if (!API_BASE_URL) {
-        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
-      }
-      
       const fullUrl = `${API_BASE_URL}/components/${id}`;
       console.log('[ComponentService] Fetching component by ID:', fullUrl);
       
@@ -133,11 +108,6 @@ class ComponentService {
   // NOTE: Get all categories
   async getCategories() {
     try {
-      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
-      if (!API_BASE_URL) {
-        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
-      }
-      
       const fullUrl = `${API_BASE_URL}/categories`;
       console.log('[ComponentService] Fetching categories:', fullUrl);
       
@@ -159,11 +129,6 @@ class ComponentService {
   // NOTE: Get all suppliers
   async getSuppliers() {
     try {
-      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
-      if (!API_BASE_URL) {
-        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
-      }
-      
       const response = await axios.get(`${API_BASE_URL}/suppliers`, {
         timeout: 30000,
         headers: {
@@ -173,11 +138,6 @@ class ComponentService {
       });
       
       const data = response.data;
-      
-      this.cache.set(cacheKey, {
-        data: data,
-        timestamp: Date.now()
-      });
       
       return data;
     } catch (error) {
