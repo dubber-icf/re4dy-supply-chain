@@ -1,10 +1,15 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+// ① Radix design-token sheet  ── must be first
+import "@radix-ui/themes/styles.css";
+// ② Your Tailwind bundle
+import "./index.css";
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// ③ Regular React imports
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+
+ createRoot(document.getElementById("root")).render(
+   <StrictMode>
+     <App />
+   </StrictMode>,
+ );
