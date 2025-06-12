@@ -3,14 +3,12 @@ import { Loader2, ExternalLink, Expand, Minimize, AlertTriangle, Copy } from 'lu
 import VirtualisedTable from './components/table/VirtualisedTable';
 import SankeyVisualization from './components/SankeyVisualization';
 import GraphVisualization from './components/GraphVisualization';
-import MapVisualization from './components/MapVisualization';
 import IPScreenerPanel from './components/IPScreenerPanel';
 import HealthCheck from './components/HealthCheck';
-import ErrorBoundary from './components/ErrorBoundary';
 import ComponentService from './services/ComponentService';
 import './App.css';
 
-// Global state context for cross-view synchronization
+// Global state context
 const AppStateContext = createContext();
 
 export const useAppState = () => {
@@ -24,13 +22,10 @@ export const useAppState = () => {
 const AppStateProvider = ({ children }) => {
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [components, setComponents] = useState([]);
-  const [highlightedNodes, setHighlightedNodes] = useState([]);
-  const [mapMarkers, setMapMarkers] = useState([]);
   const [loadingError, setLoadingError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ipScreenerResults, setIpScreenerResults] = useState(null);
 
-  // NOTE: Load all components on app initialization
   useEffect(() => {
     loadAllComponents();
   }, []);
@@ -40,17 +35,19 @@ const AppStateProvider = ({ children }) => {
       setIsLoading(true);
       setLoadingError(null);
       
+      console.log('[App] Loading components...');
       const data = await ComponentService.getAllComponents();
-      setComponents(data);
-      localStorage.setItem('lastComponentFetch', new Date().toISOString());
+      console.log('[App] Loaded components:', data);
       
-      // NOTE: Expose to window for console verification
+      setComponents(data);
+      
+      // Expose to window for debugging
       window.RE4DY = { 
         components: data, 
-        selectedComponent: null 
+        selectedComponent: null,
+        apiBase: ComponentService.getApiBaseUrl()
       };
       
-      console.log('[App] Successfully loaded', data.length, 'components');
     } catch (error) {
       console.error('[App] Failed to load components:', error);
       setLoadingError(error.message);
@@ -61,19 +58,8 @@ const AppStateProvider = ({ children }) => {
 
   const selectComponent = (component) => {
     setSelectedComponent(component);
-    // NOTE: Update window object for console verification
     if (window.RE4DY) {
       window.RE4DY.selectedComponent = component;
-    }
-    
-    // Update highlighted nodes across all visualizations
-    if (component) {
-      setHighlightedNodes([
-        `supplier_${component.supplier_id}`,
-        `component_${component.id}`
-      ]);
-    } else {
-      setHighlightedNodes([]);
     }
   };
 
@@ -81,10 +67,6 @@ const AppStateProvider = ({ children }) => {
     selectedComponent,
     components,
     selectComponent,
-    highlightedNodes,
-    setHighlightedNodes,
-    mapMarkers,
-    setMapMarkers,
     loadAllComponents,
     loadingError,
     isLoading,
@@ -99,7 +81,7 @@ const AppStateProvider = ({ children }) => {
   );
 };
 
-// NOTE: Development banner component for API base URL visibility
+// Development banner
 const DevBanner = () => {
   const apiBase = ComponentService.getApiBaseUrl();
   const isDev = import.meta.env.DEV;
@@ -107,31 +89,22 @@ const DevBanner = () => {
   if (!isDev) return null;
   
   return (
-    <div className="bg-red-600 text-white px-4 py-2 text-sm">
-      <div className="flex items-center justify-between">
-        <span>
-          <strong>DEV MODE:</strong> API Base URL: {apiBase}
-        </span>
-        <button
-          onClick={() => navigator.clipboard.writeText(apiBase)}
-          className="ml-2 p-1 hover:bg-red-700 rounded"
-          title="Copy API URL"
-        >
-          <Copy className="w-4 h-4" />
-        </button>
-      </div>
+    <div className="bg-red-600 text-white px-4 py-2 text-sm flex items-center justify-between">
+      <span><strong>DEV MODE:</strong> API Base URL: {apiBase}</span>
+      <button
+        onClick={() => navigator.clipboard.writeText(apiBase)}
+        className="ml-2 p-1 hover:bg-red-700 rounded"
+      >
+        <Copy className="w-4 h-4" />
+      </button>
     </div>
   );
 };
 
-// NOTE: Error fallback component for API connectivity issues
+// Error fallback
 const ApiErrorFallback = ({ error, onRetry }) => {
   const apiBase = ComponentService.getApiBaseUrl();
   const failingUrl = `${apiBase}/components`;
-  
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(failingUrl);
-  };
   
   return (
     <div className="flex-1 flex items-center justify-center p-8">
@@ -140,22 +113,22 @@ const ApiErrorFallback = ({ error, onRetry }) => {
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           Backend offline. Check RE4DY_API_BASE.
         </h2>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 mb-4 break-all">
           Failed to fetch: {failingUrl}
         </p>
         <div className="flex flex-col space-y-2">
           <button
-            onClick={copyToClipboard}
-            className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            onClick={() => navigator.clipboard.writeText(failingUrl)}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
           >
-            <Copy className="w-4 h-4 mr-2" />
+            <Copy className="w-4 h-4 mr-2 inline" />
             Copy failing URL
           </button>
           <button
             onClick={onRetry}
-            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            <Loader2 className="w-4 h-4 mr-2" />
+            <Loader2 className="w-4 h-4 mr-2 inline" />
             Try Again
           </button>
         </div>
@@ -168,7 +141,7 @@ function App() {
   const [activeView, setActiveView] = useState('table');
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // NOTE: Check for health route with debug parameter
+  // Health check route
   if (window.location.pathname === '/health') {
     return (
       <AppStateProvider>
@@ -185,8 +158,6 @@ function App() {
         return <SankeyVisualization />;
       case 'graph':
         return <GraphVisualization />;
-      case 'map':
-        return <MapVisualization />;
       default:
         return <VirtualisedTable />;
     }
@@ -194,88 +165,85 @@ function App() {
 
   return (
     <AppStateProvider>
-      <ErrorBoundary>
-        <div className="min-h-screen bg-gray-50">
-          {/* Development Banner */}
-          <DevBanner />
-          
-          {/* Industry Commons Foundation Header */}
-          <header className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Official ICF Logo */}
-                <a 
-                  href="https://industrycommons.net" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center"
-                >
-                  <img 
-                    src="/assets/icf-logo.png" 
-                    alt="Industry Commons Foundation"
-                    className="h-8 w-auto"
-                  />
-                </a>
-                
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Supply Chain Visualiser</h1>
-                  <p className="text-sm text-gray-600">
-                    Interactive supply chain visualisation with IPScreener patent & innovation insights
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                {/* NOTE: Hide Health Check link for normal users, show only in debug mode */}
-                {new URLSearchParams(window.location.search ).get('debug') === '1' && (
-                  <a 
-                    href="/health"
-                    className="text-sm text-blue-600 hover:text-blue-800 underline"
-                    title="System Health Check"
-                  >
-                    Health Check
-                  </a>
-                )}
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  title={isExpanded ? "Collapse View" : "Expand View"}
-                >
-                  {isExpanded ? <Minimize className="w-5 h-5" /> : <Expand className="w-5 h-5" />}
-                </button>
+      <div className="min-h-screen bg-gray-50">
+        <DevBanner />
+        
+        {/* Header with ICF Logo */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {/* ICF Logo */}
+              <a 
+                href="https://industrycommons.net" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center"
+              >
+                <img 
+                  src="/assets/icf-logo.png" 
+                  alt="Industry Commons Foundation"
+                  className="h-8 w-auto"
+                  onError={(e ) => {
+                    console.error('ICF logo failed to load');
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </a>
+              
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Supply Chain Visualiser</h1>
+                <p className="text-sm text-gray-600">
+                  Interactive supply chain visualisation with IPScreener patent & innovation insights
+                </p>
               </div>
             </div>
-          </header>
 
-          <AppContent 
-            activeView={activeView}
-            setActiveView={setActiveView}
-            isExpanded={isExpanded}
-            renderVisualization={renderVisualization}
-          />
-        </div>
-      </ErrorBoundary>
+            <div className="flex items-center space-x-2">
+              {/* Hide Health Check unless debug mode */}
+              {new URLSearchParams(window.location.search).get('debug') === '1' && (
+                <a 
+                  href="/health"
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Health Check
+                </a>
+              )}
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                {isExpanded ? <Minimize className="w-5 h-5" /> : <Expand className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <AppContent 
+          activeView={activeView}
+          setActiveView={setActiveView}
+          isExpanded={isExpanded}
+          renderVisualization={renderVisualization}
+        />
+      </div>
     </AppStateProvider>
   );
 }
 
-// NOTE: Separate component for main content to access AppState context
 const AppContent = ({ activeView, setActiveView, isExpanded, renderVisualization }) => {
-  const { loadingError, isLoading, loadAllComponents, ipScreenerResults } = useAppState();
+  const { loadingError, isLoading, loadAllComponents } = useAppState();
 
-  // NOTE: Show API error fallback if there's a loading error
   if (loadingError && !isLoading) {
     return <ApiErrorFallback error={loadingError} onRetry={loadAllComponents} />;
   }
 
   return (
     <div className="h-[calc(100vh-120px)]">
-      {/* NOTE: Two-column layout: ⅔ data visualization / ⅓ IP Screener */}
+      {/* Two-column layout: ⅔ data visualization / ⅓ IP Screener */}
       <div className={`grid h-full ${isExpanded ? 'grid-cols-1' : 'grid-cols-[2fr_1fr]'} max-w-[1600px] mx-auto`}>
         
-        {/* Main Content Area - Data Visualization */}
+        {/* Main Content Area */}
         <div className="flex flex-col bg-white border-r border-gray-200">
-          {/* Navigation Tabs */}
+          {/* Navigation Tabs - REMOVED MAP BUTTON */}
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex space-x-2">
               <button
@@ -308,16 +276,7 @@ const AppContent = ({ activeView, setActiveView, isExpanded, renderVisualization
               >
                 🕸️ Graph
               </button>
-              <button
-                onClick={() => setActiveView('map')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeView === 'map'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🗺️ Map
-              </button>
+              {/* MAP BUTTON REMOVED - Map is now inside IP Screener panel */}
             </div>
           </div>
 
@@ -331,23 +290,6 @@ const AppContent = ({ activeView, setActiveView, isExpanded, renderVisualization
         {!isExpanded && (
           <div className="bg-white flex flex-col">
             <IPScreenerPanel />
-            
-            {/* NOTE: Map shows inside IP Screener panel when search has results */}
-            {ipScreenerResults && ipScreenerResults.length > 0 && (
-              <div className="border-t border-gray-200 p-4">
-                <div className="relative">
-                  <div className="absolute top-2 right-2 z-10 bg-white/80 px-2 py-1 rounded text-xs text-gray-600">
-                    Alternatives
-                  </div>
-                  <div className="h-64">
-                    <MapVisualization 
-                      data={ipScreenerResults} 
-                      showAlternatives={true}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

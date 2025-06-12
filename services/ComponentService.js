@@ -1,16 +1,9 @@
-// NOTE: ComponentService handles all API calls to Flask backend - PRODUCTION READY
+// NOTE: ComponentService handles all API calls to Flask backend for component data
 import axios from 'axios';
 
-// NOTE: Use build-time injected API base or environment variable
-const API_BASE_URL = typeof __API_BASE__ !== 'undefined' 
-  ? __API_BASE__ 
-  : import.meta.env.VITE_RE4DY_API_BASE 
-  || 'https://re4dy-supply-chain.onrender.com/api';
-
-// NOTE: Fail build if localhost detected in production
-if (import.meta.env.PROD && API_BASE_URL.includes('localhost' )) {
-  throw new Error('PRODUCTION BUILD ERROR: localhost API detected. Set VITE_RE4DY_API_BASE environment variable.');
-}
+// NOTE: Fix environment variable name to match deployment configuration
+// CRITICAL FIX: Remove localhost fallback to prevent CORS errors in production
+const API_BASE_URL = import.meta.env.VITE_RE4DY_API_BASE || import.meta.env.VITE_API_URL || '';
 
 // NOTE: Log the exact URL being used for debugging
 console.log('[ComponentService] API Base URL:', API_BASE_URL);
@@ -36,6 +29,11 @@ class ComponentService {
     }
 
     try {
+      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
+      if (!API_BASE_URL) {
+        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
+      }
+      
       const fullUrl = `${API_BASE_URL}/components`;
       console.log('[ComponentService] Fetching components from:', fullUrl);
       
@@ -47,8 +45,7 @@ class ComponentService {
         }
       });
       
-      // NOTE: Handle both array response and object with components array
-      const data = response.data.components || response.data;
+      const data = response.data;
       console.log('[ComponentService] Successfully loaded', data.length, 'components');
       
       this.cache.set(cacheKey, {
@@ -66,18 +63,23 @@ class ComponentService {
         console.error('[ComponentService] Response status:', error.response.status);
         console.error('[ComponentService] Response data:', error.response.data);
       } else if (error.request) {
-        console.error('[ComponentService] No response received - check CORS and network');
+        console.error('[ComponentService] No response received');
       } else {
         console.error('[ComponentService] Request setup error:', error.message);
       }
       
-      throw new Error(`Backend offline. Check RE4DY_API_BASE: ${API_BASE_URL}/components`);
+      throw new Error(`Unable to load component data from ${API_BASE_URL}/components. Please check your connection and backend configuration.`);
     }
   }
 
   // NOTE: Search components with filters
   async searchComponents(searchTerm = '', category = '', supplier = '') {
     try {
+      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
+      if (!API_BASE_URL) {
+        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
+      }
+      
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (category) params.append('category', category);
@@ -94,7 +96,7 @@ class ComponentService {
         }
       });
       
-      return response.data.components || response.data;
+      return response.data;
     } catch (error) {
       console.error('[ComponentService] Failed to search components:', error);
       throw new Error('Search failed. Please try again.');
@@ -111,6 +113,11 @@ class ComponentService {
     }
 
     try {
+      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
+      if (!API_BASE_URL) {
+        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
+      }
+      
       const fullUrl = `${API_BASE_URL}/components/${id}`;
       console.log('[ComponentService] Fetching component by ID:', fullUrl);
       
@@ -146,6 +153,11 @@ class ComponentService {
     }
 
     try {
+      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
+      if (!API_BASE_URL) {
+        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
+      }
+      
       const response = await axios.get(`${API_BASE_URL}/categories`, {
         timeout: 30000,
         headers: {
@@ -178,6 +190,11 @@ class ComponentService {
     }
 
     try {
+      // CRITICAL FIX: Check if API_BASE_URL is empty and throw clear error
+      if (!API_BASE_URL) {
+        throw new Error('API Base URL is not configured. Please set VITE_RE4DY_API_BASE environment variable.');
+      }
+      
       const response = await axios.get(`${API_BASE_URL}/suppliers`, {
         timeout: 30000,
         headers: {
