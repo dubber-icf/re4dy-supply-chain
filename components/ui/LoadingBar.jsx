@@ -1,10 +1,11 @@
+/* components/ui/LoadingBar.jsx */
 import React, { useEffect, useState } from 'react';
 
 // NOTE: Custom loading bar without external dependencies
 // Uses CSS transitions for smooth animation
-export function LoadingBar({ 
-  isLoading, 
-  color = '#005EB8', 
+export function LoadingBar({
+  isLoading,
+  color = '#005EB8',
   height = '3px',
   className = ''
 }) {
@@ -18,7 +19,7 @@ export function LoadingBar({
     if (isLoading) {
       setVisible(true);
       setProgress(10);
-      
+
       // Simulate progress with realistic timing
       interval = setInterval(() => {
         setProgress(prev => {
@@ -29,7 +30,7 @@ export function LoadingBar({
     } else {
       // Complete the progress bar
       setProgress(100);
-      
+
       // Hide after animation completes
       timeout = setTimeout(() => {
         setVisible(false);
@@ -46,7 +47,7 @@ export function LoadingBar({
   if (!visible) return null;
 
   return (
-    <div 
+    <div
       className={`fixed top-0 left-0 right-0 z-50 ${className}`}
       style={{ height }}
       role="progressbar"
@@ -67,7 +68,5 @@ export function LoadingBar({
   );
 }
 
-// OPTIONAL: When react-top-loading-bar is available, replace with:
-// import LoadingBar from 'react-top-loading-bar';
-// export { LoadingBar };
-
+/* 👇👇  THE ONE-LINE FIX  👇👇 */
+export default LoadingBar;

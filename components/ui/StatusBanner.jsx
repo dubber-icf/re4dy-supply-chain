@@ -88,4 +88,4 @@ export function StatusBanner({
     </div>
   );
 }
-
+export default StatusBanner;
